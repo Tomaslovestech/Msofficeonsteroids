@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Office na steroidech</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0078d4" />
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 1rem;
+      background-color: #f4f4f4;
+      color: #333;
+    }
+    h1 {
+      text-align: center;
+    }
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: center;
+      margin-bottom: 1rem;
+    }
+    button {
+      padding: 0.5rem 1rem;
+      background: #0078d4;
+      color: white;
+      border: none;
+      border-radius: 0.4rem;
+      cursor: pointer;
+    }
+    textarea, input[type="text"], input[type="date"] {
+      width: 100%;
+      padding: 0.5rem;
+      margin-top: 0.5rem;
+      font-size: 1rem;
+      box-sizing: border-box;
+    }
+    .tab {
+      margin-top: 1rem;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+    ul li {
+      background: white;
+      margin: 0.3rem 0;
+      padding: 0.5rem;
+      border-radius: 0.3rem;
+      cursor: pointer;
+    }
+    table {
+      border-collapse: collapse;
+      margin-top: 0.5rem;
+    }
+    table td {
+      border: 1px solid #ccc;
+      padding: 0;
+    }
+    table input {
+      border: none;
+      padding: 0.4rem;
+      width: 100px;
+      box-sizing: border-box;
+    }
+    #presentationView img {
+      max-width: 90%;
+      max-height: 300px;
+    }
+  </style>
+</head>
+<body>
+  <h1>📦 Office SuperApp</h1>
+  <nav>
+    <button onclick="showTab('editor')">📝 Text</button>
+    <button onclick="showTab('todo')">✅ Úkoly</button>
+    <button onclick="showTab('calendar')">📆 Kalendář</button>
+    <button onclick="showTab('notes')">🗒️ Poznámky</button>
+    <button onclick="showTab('video')">🎥 Video</button>
+    <button onclick="showTab('presentation')">🖼️ Prezentace</button>
+    <button onclick="showTab('tables')">📊 Tabulky</button>
+    <button onclick="exportToPDF()">📄 Export PDF</button>
+    <button onclick="sendEmail()">📧 E-mail</button>
+  </nav>
+
+  <!-- Textový editor -->
+  <section id="editor" class="tab">
+    <h2>Textový editor</h2>
+    <textarea id="editorArea" placeholder="Napiš si cokoliv..."></textarea>
+    <button onclick="saveEditor()">💾 Uložit</button>
+  </section>
+
+  <!-- Úkolníček -->
+  <section id="todo" class="tab" style="display:none;">
+    <h2>Úkolníček</h2>
+    <input id="todoInput" placeholder="Nový úkol" />
+    <button onclick="addTodo()">Přidat</button>
+    <ul id="todoList"></ul>
+  </section>
+
+  <!-- Kalendář -->
+  <section id="calendar" class="tab" style="display:none;">
+    <h2>Kalendář</h2>
+    <input type="date" id="datePicker" />
+    <p>Vybrané datum: <span id="selectedDate">žádné</span></p>
+  </section>
+
+  <!-- Poznámky -->
+  <section id="notes" class="tab" style="display:none;">
+    <h2>Poznámky</h2>
+    <textarea id="noteArea" placeholder="Napiš poznámku..."></textarea>
+    <button onclick="saveNote()">Uložit poznámku</button>
+  </section>
+
+  <!-- Video přehrávač -->
+  <section id="video" class="tab" style="display:none;">
+    <h2>Video přehrávač</h2>
+    <input type="file" accept="video/*" onchange="loadVideo(event)" />
+    <video id="videoPlayer" controls width="100%"></video>
+  </section>
+
+  <!-- Prezentace -->
+  <section id="presentation" class="tab" style="display:none;">
+    <h2>Prezentace</h2>
+    <input type="text" id="slideTitle" placeholder="Nadpis slidu" />
+    <textarea id="slideText" placeholder="Text slidu"></textarea>
+    <input type="text" id="slideImage" placeholder="URL obrázku (volitelné)" />
+    <button onclick="addSlide()">Přidat slide</button>
+    <button onclick="startPresentation()">Spustit prezentaci</button>
+
+    <div id="presentationView" style="display:none;">
+      <h3 id="presTitle"></h3>
+      <p id="presText"></p>
+      <img id="presImage" src="" alt="" />
+      <br />
+      <button onclick="prevSlide()">◀️ Předchozí</button>
+      <button onclick="nextSlide()">▶️ Další</button>
+      <button onclick="stopPresentation()">Zastavit</button>
+    </div>
+  </section>
+
+  <!-- Tabulky -->
+  <section id="tables" class="tab" style="display:none;">
+    <h2>Tabulky</h2>
+    <table id="tableGrid" border="1">
+      <!-- tabulka 5x5 generována JS -->
+    </table>
+    <button onclick="exportTableCSV()">Exportovat CSV</button>
+  </section>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script>
+    // --- Navigace mezi záložkami ---
+    function showTab(id) {
+      document.querySelectorAll(".tab").forEach(tab => tab.style.display = "none");
+      document.getElementById(id).style.display = "block";
+    }
+
+    // --- Textový editor ---
+    function saveEditor() {
+      const text = document.getElementById("editorArea").value;
+      localStorage.setItem("textEditor", text);
+      alert("Text uložen!");
+    }
+    document.getElementById("editorArea").value = localStorage.getItem("textEditor") || "";
+
+    // --- Úkolníček ---
+    function addTodo() {
+      const input = document.getElementById("todoInput");
+      if (!input.value.trim()) return;
+      const ul = document.getElementById("todoList");
+      const li = document.createElement("li");
+      li.textContent = input.value;
+      li.onclick = () => li.remove();
+      ul.appendChild(li);
+      input.value = "";
+    }
+
+    // --- Kalendář ---
+    document.getElementById("datePicker").onchange = (e) => {
+      document.getElementById("selectedDate").textContent = e.target.value;
+    };
+
+    // --- Poznámky ---
+    function saveNote() {
+      const note = document.getElementById("noteArea").value;
+      localStorage.setItem("note", note);
+      alert("Poznámka uložena!");
+    }
+    document.getElementById("noteArea").value = localStorage.getItem("note") || "";
+
+    // --- Video ---
+    function loadVideo(event) {
+      const file = event.target.files[0];
+      const video = document.getElementById("videoPlayer");
+      video.src = URL.createObjectURL(file);
+    }
+
+    // --- PDF export ---
+    async function exportToPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      const text = document.getElementById("editorArea").value;
+      doc.text(text, 10, 10);
+      doc.save("text.pdf");
+    }
+
+    // --- Prezentace ---
+    let slides = [];
+    let currentSlide = 0;
+
+    function addSlide() {
+      const title = document.getElementById("slideTitle").value.trim();
+      const text = document.getElementById("slideText").value.trim();
+      const image = document.getElementById("slideImage").value.trim();
+      if (!title && !text && !image) {
+        alert("Vyplň alespoň jednu položku!");
+        return;
+      }
+      slides.push({ title, text, image });
+      alert("Slide přidán!");
+      // Vyčistit vstupy
+      document.getElementById("slideTitle").value = "";
+      document.getElementById("slideText").value = "";
+      document.getElementById("slideImage").value = "";
+    }
+
+    function showSlide(index) {
+      if (index < 0 || index >= slides.length) return;
+      currentSlide = index;
+      document.getElementById("presTitle").textContent = slides[index].title || "";
+      document.getElementById("presText").textContent = slides[index].text || "";
+      const img = document.getElementById("presImage");
+      if (slides[index].image) {
+        img.src = slides[index].image;
+        img.style.display = "block";
+      } else {
+        img.style.display = "none";
+      }
+    }
+
+    function startPresentation() {
+      if (slides.length === 0) {
+        alert("Přidej alespoň jeden slide!");
+        return;
+      }
+      document.getElementById("presentationView").style.display = "block";
+      showSlide(0);
+    }
+
+    function nextSlide() {
+      if (currentSlide < slides.length - 1) {
+        showSlide(currentSlide + 1);
+      }
+    }
+
+    function prevSlide() {
+      if (currentSlide > 0) {
+        showSlide(currentSlide - 1);
